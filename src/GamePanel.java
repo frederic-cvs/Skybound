@@ -1,9 +1,11 @@
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
+import java.awt.Stroke;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -436,6 +438,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             Color body = jetpackActive ? new Color(255, 214, 94) : new Color(108, 160, 255);
             g.setColor(body);
             g.fillRoundRect(x, y, (int) player.w, (int) player.h, 10, 10);
+
+            Stroke oldStroke = g.getStroke();
+            g.setStroke(new BasicStroke(2f));
+            g.setColor(new Color(20, 30, 50, 200));
+            g.drawRoundRect(x - 2, y - 2, (int) player.w + 4, (int) player.h + 4, 12, 12);
+            g.setStroke(oldStroke);
 
             g.setColor(Color.WHITE);
             g.fillOval(x + 7, y + 12, 8, 8);
