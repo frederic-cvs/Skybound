@@ -15,6 +15,7 @@
 - Land on platforms to keep climbing; cyan booster platforms give a stronger jump (`src/GamePanel.java:197`).
 - Avoid enemies—touching one without a jetpack ends the run (`src/GamePanel.java:272`).
 - Collect a jetpack pick-up to trigger a 3-second burst of upward thrust (`src/GamePanel.java:73`, `src/GamePanel.java:484`).
+- `P` toggles a pause overlay; the loop halts until you press `P` again (`src/GamePanel.java:59`, `src/GamePanel.java:361`, `src/GamePanel.java:463`).
 - Fall too far below the camera and you lose; press `SPACE` to restart from the menu or after death (`src/GamePanel.java:441`).
 
 ## Architecture Highlights
@@ -24,16 +25,16 @@
 - **Data holders:** Lightweight classes such as `Player`, `Platform`, `Powerup`, `Enemy`, and `Rect` make the physics and rendering code readable while keeping responsibilities narrow (`src/Player.java:1`, `src/Platform.java:1`, `src/Powerup.java:1`, `src/Enemy.java:1`, `src/Rect.java:1`).
 
 ## Advanced Topic 1 – Advanced OOP
-- **Subsystem encapsulation:** The game loop interacts with a single `ObjectManager` instance instead of mutating raw collections, which keeps spawning logic isolated and testable (`src/GamePanel.java:110`, `src/ObjectManager.java:9`).
-- **Dependency injection:** Screen dimensions and the shared RNG are injected through the manager constructor, letting us tune difficulty or seed values without touching the loop (`src/ObjectManager.java:41`).
-- **Clear data flow:** Render code reads immutable state while collision helpers reuse the `Rect` utility, giving us clean separation between state, logic, and presentation (`src/Rect.java:1`, `src/GamePanel.java:307`).
-- **UI hand-off:** `Skybound.main` wires the menu and gameplay panel through callbacks, demonstrating loose coupling between UI states (`src/Skybound.java:15`, `src/MainMenu.java:55`).
+- **Separating game logic from object management:** Instead of `GamePanel` juggling raw lists, `ObjectManager` owns every platform, enemy, and power-up (`src/ObjectManager.java:9`). The update loop simply calls helpers like `platformGapForScore`, `spawnRowAbove`, and `maybeSpawnEnemy` while it runs (`src/GamePanel.java:225`), letting us change the internal rules without touching the loop.
+- **Making the code flexible with dependency injection:** Screen size and the shared RNG go through the manager constructor (`src/ObjectManager.java:41`), so tweaking difficulty values such as `baseGap` and `maxGap` happens inside the manager (`src/ObjectManager.java:33`) instead of in the game loop.
+- **Keeping enemy spawning organized:** All spawn caps, distance checks, and fairness rules live in `maybeSpawnEnemy`, with every guard clause in one place (`src/ObjectManager.java:88`). `GamePanel` just triggers the method and moves on (`src/GamePanel.java:232`).
+- **Dividing responsibilities between classes:** Rendering code like `drawPlayer` only draws the data it receives (`src/GamePanel.java:405`), while collision checks reuse the standalone `Rect` helper for the maths (`src/Rect.java:36`). That split keeps physics, rendering, and data holders tidy.
 
 ## Advanced Topic 2 – Procedural Generation
-- **Adaptive pacing:** Platform gaps scale with score via a simple easing function, gradually increasing difficulty while staying predictable (`src/ObjectManager.java:52`).
-- **Layered platform rows:** Each `spawnRowAbove` call mixes main platforms, occasional secondary ledges, and optional boosters for variety (`src/ObjectManager.java:61`).
-- **Enemy heuristics:** Enemies spawn with distance checks against the player and each other, capping the count and avoiding unfair overlaps (`src/ObjectManager.java:88`).
-- **Endless world streaming:** As the camera rises, new rows spawn while off-screen items get removed, keeping memory usage stable and the climb endless (`src/GamePanel.java:225`, `src/GamePanel.java:280`).
+- **Making platforms harder as you progress:** `platformGapForScore` adjusts the vertical spacing based on the current score, so the climb gradually stretches out as you get better (`src/ObjectManager.java:52`).
+- **Creating random platform layouts:** `spawnRowAbove` rolls random positions, widths, booster chances, and secondary ledges whenever a new row gets added above the camera (`src/ObjectManager.java:61`).
+- **Smart enemy placement:** `maybeSpawnEnemy` samples multiple candidates but rejects anything too close to the player or another enemy, enforcing a hard cap of two active enemies for fairness (`src/ObjectManager.java:88`).
+- **Infinite world generation:** Each update spawns fresh rows just above the view (`src/GamePanel.java:225`) and prunes anything that falls well below the camera (`src/GamePanel.java:280`), giving us an endless level without handcrafted layouts.
 
 ## Product Backlog Snapshot
 | Name | How to demo | Notes |
@@ -43,3 +44,4 @@
 | Jetpack power-up | Collect the car icon to trigger the timed jetpack lift. | Activation and decay happen in the power-up logic (`src/GamePanel.java:484`). |
 | Enemy hazards | Keep climbing until a croc spawns; collide to see the death flow. | Spawn rules and collision checks sit in the manager and update loop (`src/ObjectManager.java:88`, `src/GamePanel.java:272`). |
 | Main menu & restart | Launch the game, click `START`, and press `SPACE` after you die. | Menu wiring and restart handling are separated between the panels (`src/MainMenu.java:55`, `src/GamePanel.java:441`). |
+| Pause menu | Press `P` to freeze the action and show the pause overlay, press again to resume. | Pause state, overlay, and key handling sit in the game panel (`src/GamePanel.java:59`, `src/GamePanel.java:361`, `src/GamePanel.java:463`). |

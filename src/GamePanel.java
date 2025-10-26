@@ -55,6 +55,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     // Tracks whether the player has died.
     private boolean dead = false;
+    // Tracks whether gameplay is paused.
+    private boolean paused = false;
 
     // Jetpack state and sprites.
     private boolean jetpackActive = false;
@@ -98,6 +100,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
      */
     public final void initWorld() {
         dead = false;
+        paused = false;
         score = 0;
         camY = 0.0;
         maxCamY = 0.0;
@@ -140,7 +143,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     // Timer callback: advance the game state and then request a repaint.
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (!dead) {
+        if (!dead && !paused) {
             update();
         }
         repaint();
@@ -355,6 +358,22 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g.drawString("Score: " + score, 12, 22);
         g.drawString("High: " + highScore, W - 120, 22);
 
+        // Draw pause overlay when the game is paused.
+        if (paused && !dead) {
+            g.setColor(new Color(0, 0, 0, 140));
+            g.fillRect(0, 0, W, H);
+            g.setColor(Color.WHITE);
+            g.setFont(getFont().deriveFont(java.awt.Font.BOLD, 32f));
+            String t = "Paused";
+            int tw = g.getFontMetrics().stringWidth(t);
+            g.drawString(t, (W - tw) / 2, H / 2 - 10);
+            g.setFont(getFont().deriveFont(java.awt.Font.PLAIN, 16f));
+            String hint = "Press P to resume";
+            g.drawString(hint,
+                    (W - g.getFontMetrics().stringWidth(hint)) / 2,
+                    H / 2 + 18);
+        }
+
         // Draw the death overlay with restart prompt.
         if (dead) {
             g.setColor(new Color(0, 0, 0, 140));
@@ -441,6 +460,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         keys.add(e.getKeyCode());
+        if (!dead && e.getKeyCode() == KeyEvent.VK_P) {
+            paused = !paused;
+            keys.remove(KeyEvent.VK_P);
+            return;
+        }
         // Space restarts the run after death.
         if (dead && e.getKeyCode() == KeyEvent.VK_SPACE) {
             initWorld();
