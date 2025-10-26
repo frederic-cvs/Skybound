@@ -1,5 +1,6 @@
 /**
- * Player class. All atrributes required for funcionality. Velocities in px/tick
+ * Represents the controllable player character.
+ * Stores position and velocity so the game can move, draw, and collide the avatar.
  */
 public class Player {
     public double x;   // world x (px)
@@ -9,6 +10,14 @@ public class Player {
     public double vx;  // horizontal speed
     public double vy;  // vertical speed
 
+    /**
+     * Creates a player at the given position with the given size.
+     *
+     * @param x starting horizontal world position in pixels
+     * @param y starting vertical world position in pixels
+     * @param w width of the player in pixels
+     * @param h height of the player in pixels
+     */
     public Player(double x, double y, double w, double h) {
         this.x = x;
         this.y = y;

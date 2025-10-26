@@ -3,38 +3,40 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * ObjectManager class.
- * Owns platforms and enemies. 
- * Handles procedural spawning and difficulty adujstment.
+ * Coordinates creation and lifecycle of platforms, enemies, and power-ups.
+ * All spawning logic lives here so the game loop can request new content cleanly.
  */
 public class ObjectManager {
 
-    // screen bounds for spawn decisions
+    // Screen bounds used to decide where new objects may spawn.
     private final int W;
     private final int H;
 
-    // random source
+    // Random source shared by all spawn methods.
     private final Random rng;
 
-    // active objects
+    // Active objects owned by the manager.
     public final List<Platform> platforms = new ArrayList<>();
     public final List<Enemy> enemies = new ArrayList<>();
+    public final List<Powerup> powerups = new ArrayList<>();
 
-    // smallest world Y (highest platform so far)
+    // Smallest world Y (highest platform so far), used to stack new rows above.
     public double topMostY;
 
-    // enemy rules
-    public static final int MAX_ENEMIES = 2;     // hard cap
-    private static final double MIN_ENEMY_GAP = 280; // enemy to enemy dist (px)
-    private static final double MIN_FROM_PLAYER_Y = 180; // enemy to player vertical sep
-    private static final double MIN_FROM_PLAYER_X = 90;  // enemy to player horizontal sep
+    // Enemy placement rules.
+    public static final int MAX_ENEMIES = 2;                 // Hard cap.
+    private static final double MIN_ENEMY_GAP = 280;         // Enemy-to-enemy distance (px).
+    private static final double MIN_FROM_PLAYER_Y = 180;     // Minimum vertical separation from player.
+    private static final double MIN_FROM_PLAYER_X = 90;      // Minimum horizontal separation from player.
 
-    // platform spacing curve
-    private double baseGap = 90;   // easy start
-    private double maxGap = 170;  // harder as player progresses
+    // Platform spacing curve and power-up rules.
+    private double baseGap = 90;                          // Easy starting distance.
+    private double maxGap = 170;                          // Wider gaps as difficulty increases.
+    public static final double POWERUP_SIZE = 72;         // Visual pickup size (px).
+    private static final double POWERUP_SPAWN_CHANCE = 0.02; // Chance to spawn a power-up on a platform.
 
     /**
-     * Creates new object manager.
+     * Creates an object manager tied to the screen dimensions and a random source.
      */
     public ObjectManager(int screenW, int screenH, Random rng) {
         this.W = screenW;
@@ -69,6 +71,13 @@ public class ObjectManager {
         if (rng.nextDouble() < 0.25) {
             double x2 = 20 + rng.nextDouble() * (W - 100);
             platforms.add(new Platform(x2, topMostY - 18, 80, 14));
+        }
+
+        // powerup spawn over the main platform
+        if (rng.nextDouble() < POWERUP_SPAWN_CHANCE) {
+            double px = p.x + p.w / 2.0 - POWERUP_SIZE / 2.0;
+            double py = p.y - POWERUP_SIZE - 12;
+            powerups.add(new Powerup(px, py, POWERUP_SIZE, POWERUP_SIZE));
         }
     }
 

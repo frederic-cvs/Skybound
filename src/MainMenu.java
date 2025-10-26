@@ -8,7 +8,13 @@ import java.awt.Paint;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 
 /**
  * MainMenu class.
@@ -34,6 +40,11 @@ public class MainMenu extends JPanel {
     
     // callback to switch to game
     private final Runnable onStart;
+    private final Timer animationTimer;
+    private double backdropOffset = 0.0;
+    private BufferedImage backdropImage;
+    private static final int TARGET_FPS = 60;
+    private static final double BACKDROP_SCROLL_SPEED = -0.9; // px per tick (≈54 px/s)
     
     /**
      * Creates the main menu panel.
@@ -48,6 +59,7 @@ public class MainMenu extends JPanel {
         
         setPreferredSize(new Dimension(W, H));
         setBackground(new Color(18, 23, 33));
+        loadAssets();
         
         // center buttons
         startButtonX = (W - BUTTON_WIDTH) / 2;
@@ -63,8 +75,10 @@ public class MainMenu extends JPanel {
                 int my = e.getY();
                 
                 if (isInside(mx, my, startButtonX, startButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+                    animationTimer.stop();
                     onStart.run();
-                } else if (isInside(mx, my, quitButtonX, quitButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+                } else if (isInside(mx, my, quitButtonX, quitButtonY, 
+                           BUTTON_WIDTH, BUTTON_HEIGHT)) {
                     System.exit(0);
                 }
             }
@@ -74,14 +88,28 @@ public class MainMenu extends JPanel {
                 int mx = e.getX();
                 int my = e.getY();
                 
-                startHovered = isInside(mx, my, startButtonX, startButtonY, BUTTON_WIDTH, BUTTON_HEIGHT);
-                quitHovered = isInside(mx, my, quitButtonX, quitButtonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+                startHovered = isInside(mx, my, startButtonX, startButtonY, 
+                                        BUTTON_WIDTH, BUTTON_HEIGHT);
+                quitHovered = isInside(mx, my, quitButtonX, quitButtonY, 
+                                       BUTTON_WIDTH, BUTTON_HEIGHT);
                 repaint();
             }
         };
         
         addMouseListener(mouseHandler);
         addMouseMotionListener(mouseHandler);
+
+        animationTimer = new Timer(1000 / TARGET_FPS, evt -> {
+            backdropOffset += BACKDROP_SCROLL_SPEED;
+            if (backdropImage != null && backdropImage.getHeight() > 0) {
+                double limit = backdropImage.getHeight();
+                if (backdropOffset >= limit) {
+                    backdropOffset -= limit;
+                }
+            }
+            repaint();
+        });
+        animationTimer.start();
     }
     
     @Override
@@ -90,11 +118,7 @@ public class MainMenu extends JPanel {
         Graphics2D g = (Graphics2D) g0;
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // gradient background (same as game)
-        Paint old = g.getPaint();
-        g.setPaint(new GradientPaint(0, 0, new Color(45, 56, 81), 0, H, new Color(20, 22, 34)));
-        g.fillRect(0, 0, W, H);
-        g.setPaint(old);
+        drawBackdrop(g);
         
         // title
         g.setColor(Color.WHITE);
@@ -113,7 +137,8 @@ public class MainMenu extends JPanel {
     /**
      * Draw a button with hover effect.
      */
-    private void drawButton(Graphics2D g, String text, int x, int y, boolean hovered, Color baseColor) {
+    private void drawButton(Graphics2D g, String text, int x, 
+                            int y, boolean hovered, Color baseColor) {
         // button background
         if (hovered) {
             g.setColor(baseColor.brighter());
@@ -140,5 +165,67 @@ public class MainMenu extends JPanel {
      */
     private boolean isInside(int px, int py, int rx, int ry, int rw, int rh) {
         return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+    }
+
+    private void drawBackdrop(Graphics2D g) {
+        if (backdropImage == null || backdropImage.getWidth() 
+            <= 0 || backdropImage.getHeight() <= 0) {
+            Paint old = g.getPaint();
+            g.setPaint(new GradientPaint(0, 0, new Color(45, 56, 81), 0, H, new Color(20, 22, 34)));
+            g.fillRect(0, 0, W, H);
+            g.setPaint(old);
+            return;
+        }
+
+        int imgW = backdropImage.getWidth();
+        int imgH = backdropImage.getHeight();
+        int offsetY = wrapOffset(backdropOffset, imgH);
+
+        int startY = -offsetY;
+        if (startY > 0) {
+            startY -= imgH;
+        }
+
+        for (int y = startY; y < H; y += imgH) {
+            for (int x = 0; x < W; x += imgW) {
+                g.drawImage(backdropImage, x, y, null);
+            }
+        }
+    }
+
+    private void loadAssets() {
+        backdropImage = loadFromResource("/Assets/BackdropSky.png");
+        if (backdropImage == null) {
+            backdropImage = loadFromFile("src/Assets/BackdropSky.png");
+        }
+    }
+
+    private BufferedImage loadFromResource(String resourcePath) {
+        try (InputStream in = MainMenu.class.getResourceAsStream(resourcePath)) {
+            if (in != null) {
+                return ImageIO.read(in);
+            }
+        } catch (IOException ignore) {
+        }
+        return null;
+    }
+
+    private BufferedImage loadFromFile(String filePath) {
+        try {
+            return ImageIO.read(new File(filePath));
+        } catch (IOException ignore) {
+            return null;
+        }
+    }
+
+    private int wrapOffset(double scroll, int size) {
+        if (size <= 0) {
+            return 0;
+        }
+        double mod = scroll % size;
+        if (mod < 0) {
+            mod += size;
+        }
+        return (int) Math.floor(mod);
     }
 }
