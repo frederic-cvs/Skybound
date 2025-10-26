@@ -3,8 +3,8 @@
 ## Quick Start
 - **Prerequisites:** Java 17+ (JDK).
 - **Build & run:**
+Open a terminal in the Skybound folder and run the following in succession:
   ```bash
-  mkdir -p out
   javac -d out src/*.java
   java -cp out Skybound
   ```
